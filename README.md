@@ -1,6 +1,3 @@
-Readme · MD
-Copy
-
 # mcPHASES-ML
  
 **Multimodal Temporal Modeling for Menstrual Cycle Phase Classification and Fertility Detection**
