@@ -267,7 +267,7 @@ The participant cohort is limited in size, which constrains the statistical powe
                Menstrual Cycle Phase Classification and Fertility Detection},
   year      = {2026},
   publisher = {GitHub},
-  url       = {https://github.com/yourusername/mcphases-ml}
+  url       = {https://github.com/AnnieZX/mcphases-ml}
 }
 ```
  
