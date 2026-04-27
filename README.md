@@ -1,167 +1,279 @@
+Readme · MD
+Copy
+
 # mcPHASES-ML
-
-**Multimodal Temporal Representation Learning for Personalized Menstrual Cycle Modeling**
-
-### Overview
-
-This project investigates whether multimodal physiological time-series signals can be used to learn meaningful and personalized representations of menstrual cycle dynamics.
-
-Using the mcPHASES dataset, we study:
-
-- Representation learning from wearable and hormonal signals  
-- Menstrual phase classification  
-- Ovulation detection  
-- Personalized modeling vs global modeling
-
-The goal is to move beyond simple classification and explore whether latent physiological state embeddings improve predictive performance and generalization.
-
-### Research Questions
-
-- **RQ1 – Representation Learning**  
-Can self-supervised temporal models learn meaningful physiological embeddings from multimodal wearable and hormonal time-series data?
-
-- **RQ2 – Downstream Prediction**  
-Do learned embeddings improve:
-  - Phase classification accuracy  
-  - Ovulation detection performance  
-  compared to raw-feature baselines?
-
-- **RQ3 – Personalization**  
-Does individualized fine-tuning outperform global models in modeling menstrual cycle dynamics?
-
-### Dataset
-
-We use the mcPHASES dataset, which includes:
-
-- HRV  
-- Resting heart rate  
-- Skin temperature  
-- Sleep metrics  
-- Activity  
-- Hormone levels (e.g., LH, estrogen)  
-- Menstrual phase labels
-
-Data is processed into sliding windows (default: 7-day windows).
-
-### Project Structure
-
-Installation
-
-Create virtual environment
-
+ 
+**Multimodal Temporal Modeling for Menstrual Cycle Phase Classification and Fertility Detection**
+ 
+Annie Luo · Computer Science · Wake Forest University
+ 
+---
+ 
+## Overview
+ 
+This project investigates whether multimodal physiological time-series data from wearable devices, hormone monitors, and daily self-report surveys can be used to accurately classify menstrual cycle phases and detect fertile windows. Using the mcPHASES dataset, we build and evaluate a complete machine learning pipeline — from raw sensor data to personalized predictive models.
+ 
+The core contributions are:
+ 
+- A reproducible preprocessing pipeline that merges 13 heterogeneous data sources into a unified daily feature table, including ordinal encoding of Likert-scale self-report symptoms and log-transformation of hormone signals
+- A systematic comparison of four model families (Logistic Regression, XGBoost, BiLSTM, Transformer) on phase classification and fertility detection
+- A modality ablation study quantifying the marginal contribution of wearable signals, hormone levels, and self-reported symptoms to predictive performance
+- A personalization analysis using Leave-One-User-Out validation, global vs. fine-tuned model comparison, and a few-shot adaptation curve
+---
+ 
+## Research Questions
+ 
+**RQ1 — Multimodal Contribution**
+Does combining wearable signals, hormone data, and self-reported symptoms outperform any single modality alone? Which modality contributes most to menstrual phase classification and fertility detection?
+ 
+**RQ2 — Temporal Modeling**
+Do sequential models (BiLSTM, Transformer) that explicitly model the temporal structure of physiological windows outperform non-sequential baselines (Logistic Regression, XGBoost) on phase classification and fertility detection?
+ 
+**RQ3 — Personalization**
+Does fine-tuning a global model on an individual participant's own data improve phase classification accuracy compared to a population-level model trained on all participants?
+ 
+---
+ 
+## Dataset
+ 
+This project uses the **mcPHASES dataset**, which aggregates data from multiple personal health tracking devices collected across two study intervals (January–April 2022 and July–October 2024). All tables are joined on `id` (participant identifier) and `day_in_study` (normalized day index from Day 1 of each participant's study interval).
+ 
+| Modality | Device | Signals |
+|---|---|---|
+| Wearable | Fitbit | Resting heart rate, HRV (RMSSD, LF, HF), wrist skin temperature, nightly skin temperature, sleep score, respiratory rate, stress score, VO2 max, activity minutes, heart rate zones |
+| Hormone | Mira fertility monitor | LH (mIU/mL), estrogen metabolite E3G (ng/mL), PDG — progesterone metabolite (mcg/mL) |
+| Self-report | Daily survey | 13 symptoms on a Likert scale: appetite, exercise level, headaches, cramps, breast soreness, fatigue, sleep issues, mood swings, stress, food cravings, indigestion, bloating, flow volume |
+| Labels | Derived | Menstrual cycle phase (menstrual / follicular / ovulation / luteal) |
+ 
+> The dataset is not publicly distributed. To reproduce this work, place all CSV files in a `./data/` directory matching the filenames referenced in the notebook.
+ 
+---
+ 
+## Window Size Rationale
+ 
+**W = 7 days** is used as the main window for phase classification. This length captures hormonal trends across follicular and luteal phases while typically spanning at most one phase boundary per window.
+ 
+**W = 5 days** is used for fertility detection. The LH surge peaks 24–48 hours before ovulation and lasts 3–5 days total. A 5-day window captures this surge with minimal non-fertile context, reducing noise for the binary detection task.
+ 
+Both windows use a stride of 1 day to maximize training sample count via overlapping windows.
+ 
+---
+ 
+## Project Structure
+ 
+```
+mcphases-ml/
+│
+├── notebooks/
+│   └── mcphases_pipeline.ipynb      # Complete end-to-end pipeline
+│
+├── data/                             # Raw CSVs (not included in repo)
+│   ├── hormones_and_selfreport.csv
+│   ├── resting_heart_rate.csv
+│   ├── heart_rate_variability_details.csv
+│   ├── computed_temperature.csv
+│   ├── wrist_temperature.csv
+│   ├── sleep_score.csv
+│   ├── stress_score.csv
+│   ├── active_minutes.csv
+│   ├── respiratory_rate_summary.csv
+│   ├── demographic_vo2_max.csv
+│   ├── time_in_heart_rate_zones.csv
+│   ├── sleep.csv
+│   └── subject_info.csv
+│
+├── processed/                        # Generated by Part 2
+│   ├── merged_daily.csv
+│   ├── X_{train,val,test}_W7.npy
+│   ├── y_{train,val,test}_W7.npy
+│   ├── X_{train,val,test}_W5.npy
+│   ├── y_ovu_{train,val,test}_W5.npy
+│   ├── feature_list.json
+│   ├── split_ids.json
+│   └── scaler.pkl
+│
+├── results/                          # Generated by Parts 3–5
+│   ├── baseline_results.csv
+│   ├── per_class_f1.csv
+│   ├── ablation_phase.csv
+│   ├── ablation_fertility.csv
+│   ├── ablation_summary.csv
+│   ├── louo_results.csv
+│   ├── personalization_results.csv
+│   ├── kday_curve.csv
+│   └── *.pt                          # Saved model weights
+│
+├── requirements.txt
+└── README.md
+```
+ 
+---
+ 
+## Installation
+ 
+```bash
+git clone https://github.com/yourusername/mcphases-ml.git
+cd mcphases-ml
+ 
 python3 -m venv venv
 source venv/bin/activate
-
-Install dependencies
-
+ 
 pip install -r requirements.txt
-Required packages
-torch
+ 
+jupyter notebook notebooks/mcphases_pipeline.ipynb
+```
+ 
+### Requirements
+ 
+```
+torch>=2.0.0
 numpy
 pandas
 scikit-learn
 xgboost
 matplotlib
 seaborn
-pyyaml
+scipy
 tqdm
-einops
 jupyter
-Notebook Pipeline
-
-All preprocessing, modeling, evaluation, and visualization are implemented in a single notebook:
-
-jupyter notebook notebooks/mcphases_pipeline.ipynb
-
-The notebook includes the full end-to-end workflow:
-
-Step 1 — Data Preprocessing
-
-Includes:
-
-Missing value handling
-Normalization
-Sliding window segmentation
-User-level split
-Step 2 — Baseline Models (Raw Features)
-
-Models:
-
-Logistic Regression
-XGBoost
-LSTM
-Transformer
-Step 3 — Self-Supervised Encoder (RQ1)
-
-Training objectives:
-
-Contrastive learning
-Masked time-step prediction
-Reconstruction
-
-Outputs:
-
-Physiological embeddings
-Encoder checkpoints/results saved from notebook execution
-Step 4 — Embedding-Based Prediction (RQ2)
-
-Compare:
-
-Raw features vs Embedding features
-
-Metrics:
-
-Accuracy
-F1-score
-AUROC
-Step 5 — Personalization (RQ3)
-
-Compare:
-
-Global model
-Per-user fine-tuning
-Few-shot adaptation
-Evaluation Strategy
-User-level data split
-Leave-one-user-out validation
-Cross-user generalization
-
-Metrics:
-
-Accuracy
-F1-score
-AUROC
-Per-user performance
-Embedding Analysis
-
-We analyze learned representations via:
-
-t-SNE visualization
-Clustering separability
-Phase separability
-
-All analysis is included in:
-
-notebooks/mcphases_pipeline.ipynb
-Expected Contributions
-A multimodal temporal representation learning framework for female health modeling
-Empirical evaluation of embedding utility in downstream tasks
-Quantitative analysis of personalization benefits
-A reproducible notebook-based pipeline for menstrual cycle modeling
-Ethical Considerations
-Data privacy protection
-Bias across demographic groups
-Clinical interpretation limitations
-
-This project is intended for research purposes only and does not provide medical advice.
-
-Future Work
-Survival modeling for phase transition prediction
-Generative modeling of physiological trajectories
-Causal analysis between hormones and wearable signals
-Domain adaptation across datasets
-Author
-
-Annie Luo
-Computer Science
-Wake Forest University
+```
+ 
+---
+ 
+## Notebook Pipeline
+ 
+All preprocessing, modeling, evaluation, and visualization live in a single notebook: `notebooks/mcphases_pipeline.ipynb`. Each part saves outputs to disk so downstream parts can be reloaded independently after the first run.
+ 
+---
+ 
+### Part 1 — Exploratory Data Analysis
+ 
+Audits all source tables for shape, dtypes, missing value rates, and participant coverage. Key analyses include hormone distribution plots (raw vs. log-transformed LH, estrogen, PDG) stratified by cycle phase to verify label quality, outlier detection using the 3×IQR rule, wearable signal time-series plots for example participants, phase label class balance analysis, and a cross-modal Pearson correlation matrix on daily-aggregated features.
+ 
+---
+ 
+### Part 2 — Preprocessing & Feature Engineering
+ 
+**Merge.** All modalities are aggregated to `(id, day_in_study)` daily resolution and outer-joined into a single wide table. `computed_temperature` uses `sleep_start_day_in_study` as its day key because it is recorded at the sleep-session level. Activity and heart rate zone columns are summed rather than averaged because they represent total daily minutes.
+ 
+**Encoding.** Self-report Likert strings (`'Low'`, `'High'`, `'Very Low/Little'`, etc.) are mapped to ordinal integers 0–5 before any numeric aggregation. `flow_color` is excluded as a non-ordinal categorical.
+ 
+**Feature engineering.** Six types of derived features are added before normalization: `log1p` transforms of LH, estrogen, and PDG; day-over-day delta signals; a binary LH surge flag (current log-LH > 1.5× 5-day rolling mean); an LH/PDG ratio; an HRV LF/HF ratio; and a 5-day rolling mean of resting heart rate.
+ 
+**Imputation.** Missing values are filled at four levels per participant: forward-fill (limit 3 days) → backward-fill (limit 3 days) → participant-level median → global median. The phase label column is never imputed.
+ 
+**Split.** Participants are assigned to train / val / test (70 / 15 / 15) at the participant level. No participant appears in more than one split. A `StandardScaler` is fit exclusively on the training split and applied to all splits to prevent data leakage.
+ 
+**Windowing.** Sliding windows of W=7 (phase) and W=5 (fertility) are constructed with stride=1. Each window is labeled with the phase of its final day, simulating real-time prediction.
+ 
+---
+ 
+### Part 3 — Baseline Models (RQ2)
+ 
+Four model families are trained and evaluated on both tasks.
+ 
+**Logistic Regression and XGBoost** take flattened (W×F)-dimensional vectors. XGBoost uses early stopping on the validation set. Both use balanced class weights.
+ 
+**BiLSTM** processes the (W, F) sequence with 2 bidirectional layers (hidden=128) and takes the concatenated final hidden state as the sequence representation.
+ 
+**Transformer** uses a learnable CLS token prepended to the projected input sequence, processed by 3 encoder layers (d_model=128, nhead=4, pre-norm). The CLS output is used as the window representation.
+ 
+All deep models use early stopping (patience=15), gradient clipping (max norm=1.0), and `ReduceLROnPlateau` scheduling. Training diagnostics (loss curves, accuracy, learning rate schedule) are plotted for each model to check for overfitting. Primary metrics are macro-F1 and macro-AUROC. Per-class F1 and ROC curves (one-vs-rest) are reported for all four phases.
+ 
+---
+ 
+### Part 4 — Modality Ablation (RQ1)
+ 
+Seven modality conditions are evaluated using both BiLSTM and XGBoost on both tasks:
+ 
+| Condition | Features included |
+|---|---|
+| `wearable_only` | Fitbit signals only |
+| `hormone_only` | LH, estrogen, PDG + engineered hormone features |
+| `selfreport_only` | 13 Likert-encoded symptom scores |
+| `wear_hormone` | Wearable + Hormone |
+| `wear_selfreport` | Wearable + Self-report |
+| `hormone_selfreport` | Hormone + Self-report |
+| `all_modalities` | All features combined |
+ 
+The marginal contribution of each modality is computed as the F1 drop when that modality is removed from the full feature set. Results are visualized as a condition × metric heatmap and a marginal contribution bar chart. This directly answers RQ1.
+ 
+---
+ 
+### Part 5 — Personalization (RQ3)
+ 
+Three experiments address RQ3.
+ 
+**LOUO (Leave-One-User-Out) validation.** For each participant, a global model is trained on all other participants and evaluated on the held-out participant. This provides the strictest measure of cross-user generalization with zero personal data.
+ 
+**Global vs. fine-tuned comparison.** A single global model is trained on the full training split. For each test participant, the first 50% of their windows are used to fine-tune this model at a reduced learning rate (1e-4). The remaining 50% of windows are used for evaluation. Per-participant F1 gains are reported and a Wilcoxon signed-rank test assesses whether the improvement is statistically significant.
+ 
+**Few-shot k-window curve.** Fine-tuning is repeated using k ∈ {0, 3, 7, 14, 21, 28} adaptation windows per participant. F1 and AUROC are plotted against k to characterize how much personal data is needed before personalization yields meaningful gains.
+ 
+---
+ 
+## Evaluation Strategy
+ 
+| Metric | Role |
+|---|---|
+| Macro-F1 | Primary metric — treats all phases equally regardless of class size |
+| Macro-AUROC | Ranking quality across all phases (one-vs-rest) |
+| Accuracy | Reported for completeness |
+| Per-class F1 | Identifies which phases are hardest to classify |
+| Wilcoxon signed-rank test | Statistical significance of personalization gain (Part 5) |
+ 
+All final metrics are computed on the held-out test set. The validation set is used only for early stopping and is never used to select the final reported numbers.
+ 
+---
+ 
+## Key Design Decisions
+ 
+**Participant-level split.** Splitting by window would allow models to see the same person's physiology at both training and test time, inflating reported performance. Splitting by participant ensures the test set measures true cross-person generalization.
+ 
+**Label of the last day.** Each window is labeled with the phase of its final day rather than a majority vote. This reflects the real deployment scenario: observe the past W days and predict the current phase.
+ 
+**Balanced class weights.** Ovulation has substantially fewer observations than follicular or luteal. All models use balanced class weights and macro-F1 is used as the primary metric to avoid majority-class bias.
+ 
+**Log-transform for hormones.** LH, estrogen, and PDG are right-skewed with rare high surge values. `log1p` compression brings these closer to Gaussian and reduces the influence of outlier measurements on gradient-based optimization.
+ 
+**Fine-tuning learning rate.** Personalization fine-tuning uses LR = 1e-4, one order of magnitude below the global training LR of 1e-3. This allows the model to adapt to individual patterns without catastrophic forgetting of its population-level knowledge.
+ 
+---
+ 
+## Ethical Considerations
+ 
+This project uses data collected from consenting participants under an IRB-approved protocol. All analysis is performed at the aggregate or anonymized-participant level for research purposes only. No personally identifiable information is used or released. The models and analyses are not intended as clinical tools and do not constitute medical advice. Performance results should be interpreted cautiously given the sample size — findings may not generalize to broader or more diverse populations without further validation.
+ 
+---
+ 
+## Limitations
+ 
+The participant cohort is limited in size, which constrains the statistical power of the personalization and ablation analyses. The dataset spans two collection intervals (2022 and 2024), which may introduce temporal confounds. Hormone measurements from the Mira device are not recorded every day for all participants, leading to imputed values in a proportion of windows. Self-report symptom data is subject to recall bias and inconsistent completion rates.
+ 
+---
+ 
+## Future Work
+ 
+- Survival modeling for phase transition prediction
+- Causal analysis of hormone–wearable signal relationships across the cycle
+- Domain adaptation between study intervals (2022 vs. 2024)
+- Extension to irregular cycle detection and PCOS-related pattern recognition
+- Generative modeling of individual physiological trajectories for data augmentation
+---
+ 
+## Citation
+ 
+```bibtex
+@misc{luo2026mcphasesml,
+  author    = {Luo, Annie},
+  title     = {mcPHASES-ML: Multimodal Temporal Modeling for
+               Menstrual Cycle Phase Classification and Fertility Detection},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://github.com/yourusername/mcphases-ml}
+}
+```
+ 
+---
+ 
+*Wake Forest University · Department of Computer Science · 2026*
