@@ -1,0 +1,15 @@
+# data / derived data
+mcphases/
+processed/
+data/
+
+# notebook cache
+.ipynb_checkpoints/
+
+# python cache
+__pycache__/
+*.pyc
+
+# mac
+.DS_Store
+EOF
