@@ -109,7 +109,7 @@ mcphases-ml/
 ## Installation
  
 ```bash
-git clone https://github.com/yourusername/mcphases-ml.git
+git clone https://github.com/AnnieZX/mcphases-ml.git
 cd mcphases-ml
  
 python3 -m venv venv
