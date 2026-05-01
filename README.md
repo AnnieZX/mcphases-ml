@@ -40,7 +40,7 @@ This project uses the **mcPHASES dataset**, which aggregates data from multiple 
 | Wearable | Fitbit | Resting heart rate, HRV (RMSSD, LF, HF), wrist skin temperature, nightly skin temperature, sleep score, respiratory rate, stress score, VO2 max, activity minutes, heart rate zones |
 | Hormone | Mira fertility monitor | LH (mIU/mL), estrogen metabolite E3G (ng/mL), PDG — progesterone metabolite (mcg/mL) |
 | Self-report | Daily survey | 13 symptoms on a Likert scale: appetite, exercise level, headaches, cramps, breast soreness, fatigue, sleep issues, mood swings, stress, food cravings, indigestion, bloating, flow volume |
-| Labels | Derived | Menstrual cycle phase (menstrual / follicular / ovulation / luteal) |
+| Labels | mcPHASES dataset | Menstrual cycle phase (menstrual / follicular / fertility / luteal) |
  
 > The dataset is not publicly distributed. To reproduce this work, place all CSV files in a `./data/` directory matching the filenames referenced in the notebook.
  
@@ -175,7 +175,9 @@ Four model families are trained and evaluated on both tasks.
  
 **Transformer** uses a learnable CLS token prepended to the projected input sequence, processed by 3 encoder layers (d_model=128, nhead=4, pre-norm). The CLS output is used as the window representation.
  
-All deep models use early stopping (patience=15), gradient clipping (max norm=1.0), and `ReduceLROnPlateau` scheduling. Training diagnostics (loss curves, accuracy, learning rate schedule) are plotted for each model to check for overfitting. Primary metrics are macro-F1 and macro-AUROC. Per-class F1 and ROC curves (one-vs-rest) are reported for all four phases.
+BiLSTM uses early stopping (patience=15); Transformer uses early stopping (patience=15). 
+Both models showed significant overfitting on this dataset (BiLSTM train-val gap +0.33, Transformer +0.23), 
+with best checkpoints selected at epoch 1 and epoch 4 respectively. Gradient clipping (max norm=1.0), and `ReduceLROnPlateau` scheduling. Training diagnostics (loss curves, accuracy, learning rate schedule) are plotted for each model to check for overfitting. Primary metrics are macro-F1 and macro-AUROC. Per-class F1 and ROC curves (one-vs-rest) are reported for all four phases.
  
 ---
  
@@ -229,7 +231,8 @@ All final metrics are computed on the held-out test set. The validation set is u
  
 **Label of the last day.** Each window is labeled with the phase of its final day rather than a majority vote. This reflects the real deployment scenario: observe the past W days and predict the current phase.
  
-**Balanced class weights.** Ovulation has substantially fewer observations than follicular or luteal. All models use balanced class weights and macro-F1 is used as the primary metric to avoid majority-class bias.
+**Balanced class weights.** The luteal phase dominates at 33.8% of observations while menstrual is the 
+smallest class at 19.1%, giving a max/min imbalance ratio of 1.77×. All models use balanced class weights and macro-F1 is used as the primary metric to avoid majority-class bias.
  
 **Log-transform for hormones.** LH, estrogen, and PDG are right-skewed with rare high surge values. `log1p` compression brings these closer to Gaussian and reduces the influence of outlier measurements on gradient-based optimization.
  
@@ -245,7 +248,15 @@ This project uses data collected from consenting participants under an IRB-appro
  
 ## Limitations
  
-The participant cohort is limited in size, which constrains the statistical power of the personalization and ablation analyses. The dataset spans two collection intervals (2022 and 2024), which may introduce temporal confounds. Hormone measurements from the Mira device are not recorded every day for all participants, leading to imputed values in a proportion of windows. Self-report symptom data is subject to recall bias and inconsistent completion rates.
+The participant cohort is limited in size (42 participants, 7 in the test split), 
+which severely constrains the statistical power of the personalization analysis. 
+PDG missingness of 67.1% means progesterone-derived features are largely imputed 
+for the majority of participant-days. A statistically significant distribution shift 
+was detected between the 2022 and 2024 collection intervals (KS statistic=0.322, 
+p<0.0001), which was not explicitly controlled for in modeling. Both deep sequential 
+models overfit severely given the dataset size, with best validation checkpoints 
+selected at epoch 1 (BiLSTM) and epoch 4 (Transformer). Self-report symptom data 
+has ~41% missingness across all symptom columns, limiting its utility as a modality.
  
 ---
  
