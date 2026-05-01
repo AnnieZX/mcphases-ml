@@ -12,4 +12,4 @@ __pycache__/
 
 # mac
 .DS_Store
-EOF
+EOFresults/*.pt
